@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>დომინოს ჩოთქი</title>
+<style>
+  :root {
+    --bg: #14211b; --board: #1f3a2e; --board2: #26473a; --chalk: #f1efe6;
+    --muted: #a9c2b5; --gold: #f2c14e; --red: #e0614a; --tile: #f7f3e8;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; font-family: system-ui, "Noto Sans Georgian", sans-serif;
+    background: radial-gradient(circle at top, #23392f, var(--bg)); color: var(--chalk); min-height: 100vh;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 14px; }
+  h1 { text-align: center; margin: 6px 0 14px; color: var(--gold); }
+  h2 { font-size: .9rem; color: var(--muted); margin: 0 0 10px; text-transform: uppercase; letter-spacing: 1px; }
+  .card {
+    background: linear-gradient(180deg, var(--board2), var(--board)); border-radius: 14px;
+    padding: 14px; margin-bottom: 14px; box-shadow: 0 4px 14px #0008, inset 0 1px 0 #fff1;
+  }
+  .settings { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .settings label { font-size: .8rem; color: var(--muted); display: block; margin-bottom: 4px; }
+  .seg { display: flex; gap: 4px; }
+  .seg button, select, .num {
+    flex: 1; padding: 10px 6px; border-radius: 8px; border: 1px solid #fff2; background: #0003;
+    color: var(--chalk); font-size: .95rem; cursor: pointer; width: 100%;
+  }
+  .seg button.on { background: var(--gold); color: #14211b; font-weight: 700; }
+  select option { background: var(--board); }
+
+  .cols { display: grid; gap: 8px; }
+  .cols.n4 { grid-template-columns: repeat(2, 1fr); }
+  .cols.n2 { grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 640px) { .cols.n4 { grid-template-columns: repeat(4, 1fr); } }
+  .pl { background: #0003; border-radius: 10px; padding: 10px; text-align: center; border: 2px solid transparent; position: relative; }
+  .pl.lead { border-color: var(--gold); }
+  .pl.lead::after { content: "👑"; position: absolute; top: -12px; right: -6px; }
+  .pl.out { border-color: var(--red); }
+  .pl.out::after { content: "🐐"; position: absolute; top: -12px; right: -6px; }
+  .pl input.name {
+    width: 100%; background: transparent; border: none; border-bottom: 1px dashed #fff4;
+    color: var(--chalk); text-align: center; font-size: 1rem; font-weight: 600; padding: 3px;
+  }
+  .pl input.name:focus { outline: none; border-bottom-color: var(--gold); }
+  .total { font-size: 2.4rem; font-weight: 800; color: var(--gold); margin: 4px 0 0; font-variant-numeric: tabular-nums; }
+  .bar { height: 5px; background: #0005; border-radius: 3px; overflow: hidden; margin: 4px 0; }
+  .bar > div { height: 100%; background: var(--gold); transition: width .3s; }
+  .sub { font-size: .78rem; color: var(--muted); }
+  .num { font-size: 1.4rem; text-align: center; margin: 8px 0 6px; font-weight: 700; cursor: text; }
+  .num:focus { outline: 2px solid var(--gold); }
+  .quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .quick button {
+    padding: 9px 0; border-radius: 7px; border: none; background: var(--tile); color: #14211b;
+    font-weight: 700; font-size: .9rem; cursor: pointer; box-shadow: 0 2px 0 #0006;
+  }
+  .quick button:active { transform: translateY(2px); box-shadow: none; }
+  .quick button.clr { background: #0004; color: var(--chalk); }
+
+  .btn {
+    width: 100%; padding: 14px; font-size: 1.1rem; font-weight: 700; border: none; border-radius: 10px;
+    background: var(--gold); color: #14211b; cursor: pointer; box-shadow: 0 3px 0 #0006; margin-top: 12px;
+  }
+  .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #0006; }
+  .btn:disabled { opacity: .4; }
+  .btn.sm { width: auto; padding: 8px 12px; font-size: .9rem; background: #0004; color: var(--chalk); margin: 0; }
+  .btn.danger { background: var(--red); color: #fff; }
+  .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 10px; }
+
+  .banner { text-align: center; font-size: 1.2rem; font-weight: 700; padding: 14px; border-radius: 10px;
+    background: var(--gold); color: #14211b; margin-bottom: 14px; display: none; }
+  .banner.show { display: block; }
+  .banner .btn { background: #14211b; color: var(--gold); }
+
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 4px; text-align: center; border-bottom: 1px solid #fff1; }
+  th { color: var(--muted); font-size: .85rem; font-weight: 600; }
+  td .run { display: block; font-size: .75rem; color: var(--muted); }
+  td.rn { color: var(--muted); font-size: .8rem; width: 34px; }
+  .tablewrap { max-height: 360px; overflow-y: auto; }
+  .empty { color: #fff5; text-align: center; padding: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🁫 დომინოს ჩოთქი</h1>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="card">
+    <h2>პარამეტრები</h2>
+    <div class="settings">
+      <div>
+        <label>თამაში</label>
+        <div class="seg" id="modeSeg">
+          <button data-v="solo">ყველა ცალკე</button>
+          <button data-v="team">2 × 2</button>
+        </div>
+      </div>
+      <div>
+        <label>ვინც მიაღწევს ლიმიტს</label>
+        <div class="seg" id="goalSeg">
+          <button data-v="win">იგებს</button>
+          <button data-v="lose">აგებს 🐐</button>
+        </div>
+      </div>
+      <div>
+        <label>ლიმიტი</label>
+        <select id="target"></select>
+      </div>
+      <div>
+        <label>მოგებული პარტიები</label>
+        <div class="sub" id="matchWins" style="padding-top:10px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>რაუნდის ჩაწერა</h2>
+    <div class="cols" id="entry"></div>
+    <button class="btn" id="addBtn">✚ რაუნდის ჩაწერა</button>
+  </div>
+
+  <div class="card">
+    <h2>ჩოთქი</h2>
+    <div class="tablewrap"><table id="sheet"></table></div>
+    <div class="actions">
+      <button class="btn sm" id="undoBtn">↶ ბოლო რაუნდის წაშლა</button>
+      <button class="btn sm danger" id="resetBtn">⟲ ყველაფრის განულება</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY = 'domino-chotki-v1';
+const TARGETS = [51, 101, 151, 201, 250, 301, 365, 500];
+const QUICK = [5, 10, 15, 20, 25];
+
+const fresh = () => ({
+  names: ['მოთამაშე 1', 'მოთამაშე 2', 'მოთამაშე 3', 'მოთამაშე 4'],
+  teamNames: ['გუნდი A', 'გუნდი B'],
+  mode: 'solo', goal: 'win', target: 101,
+  rounds: [], wins: { solo: [0, 0, 0, 0], team: [0, 0] },
+});
+let state = Object.assign(fresh(), load() || {});
+let draft = [];
+
+function load() { try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; } }
+function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const n = () => state.mode === 'team' ? 2 : 4;
+const names = () => state.mode === 'team'
+  ? state.teamNames.map((t, i) => `${t}`) : state.names;
+const teamSub = i => `${state.names[i]} + ${state.names[i + 2]}`;
+const totals = () => {
+  const t = Array(n()).fill(0);
+  for (const r of state.rounds) r.forEach((v, i) => t[i] += v);
+  return t;
+};
+
+// Returns { done, winners: [idx], losers: [idx] }
+function result() {
+  const t = totals();
+  const over = t.map((v, i) => v >= state.target ? i : -1).filter(i => i >= 0);
+  if (!over.length) return { done: false };
+  if (state.goal === 'win') {
+    const max = Math.max(...t);
+    return { done: true, winners: t.map((v, i) => v === max ? i : -1).filter(i => i >= 0), losers: [] };
+  }
+  const min = Math.min(...t);
+  return { done: true, losers: over, winners: t.map((v, i) => v === min ? i : -1).filter(i => i >= 0) };
+}
+
+function renderSettings() {
+  document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === state.mode));
+  document.querySelectorAll('#goalSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === state.goal));
+  const opts = TARGETS.includes(state.target) ? TARGETS : [...TARGETS, state.target].sort((a, b) => a - b);
+  $('target').innerHTML = opts.map(v => `<option ${v === state.target ? 'selected' : ''}>${v}</option>`).join('')
+    + '<option value="custom">სხვა…</option>';
+  const w = state.wins[state.mode];
+  $('matchWins').innerHTML = names().map((nm, i) => `${esc(nm)}: <b>${w[i]}</b>`).join(' · ');
+}
+
+function renderEntry() {
+  const t = totals(), res = result(), nm = names();
+  const lead = Math.max(...t);
+  $('entry').className = 'cols n' + n();
+  $('entry').innerHTML = nm.map((name, i) => {
+    let cls = '';
+    if (res.done) cls = res.losers.includes(i) ? 'out' : res.winners.includes(i) ? 'lead' : '';
+    else if (state.goal === 'win' && lead > 0 && t[i] === lead) cls = 'lead';
+    const pct = Math.min(100, t[i] / state.target * 100);
+    return `<div class="pl ${cls}">
+      <input class="name" value="${esc(name)}" data-i="${i}" maxlength="16">
+      ${state.mode === 'team' ? `<div class="sub">${esc(teamSub(i))}</div>` : ''}
+      <div class="total">${t[i]}</div>
+      <div class="bar"><div style="width:${pct}%"></div></div>
+      <div class="sub">დარჩა ${Math.max(0, state.target - t[i])}</div>
+      <input class="num" type="number" inputmode="numeric" placeholder="0" data-i="${i}" value="${draft[i] || ''}">
+      <div class="quick">
+        ${QUICK.map(q => `<button data-i="${i}" data-q="${q}">+${q}</button>`).join('')}
+        <button class="clr" data-i="${i}" data-q="0">C</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  $('entry').querySelectorAll('input.name').forEach(inp => inp.onchange = e => {
+    const i = +e.target.dataset.i, v = e.target.value.trim();
+    if (state.mode === 'team') state.teamNames[i] = v || `გუნდი ${'AB'[i]}`;
+    else state.names[i] = v || `მოთამაშე ${i + 1}`;
+    save(); render();
+  });
+  $('entry').querySelectorAll('input.num').forEach(inp => inp.oninput = e => {
+    draft[+e.target.dataset.i] = parseInt(e.target.value) || 0; updateAdd();
+  });
+  $('entry').querySelectorAll('.quick button').forEach(b => b.onclick = () => {
+    const i = +b.dataset.i, q = +b.dataset.q;
+    draft[i] = q ? (draft[i] || 0) + q : 0;
+    $('entry').querySelector(`input.num[data-i="${i}"]`).value = draft[i] || '';
+    updateAdd();
+  });
+  updateAdd();
+}
+
+function updateAdd() {
+  const has = draft.some(v => v);
+  $('addBtn').disabled = !has || result().done;
+}
+
+function renderSheet() {
+  const nm = names();
+  if (!state.rounds.length) { $('sheet').innerHTML = '<tr><td class="empty">ჯერ არცერთი რაუნდი</td></tr>'; return; }
+  const run = Array(n()).fill(0);
+  let rows = state.rounds.map((r, k) => {
+    r.forEach((v, i) => run[i] += v);
+    return `<tr><td class="rn">${k + 1}</td>${r.map((v, i) =>
+      `<td>${v ? v : '·'}<span class="run">${run[i]}</span></td>`).join('')}</tr>`;
+  });
+  $('sheet').innerHTML = `<tr><th>#</th>${nm.map(x => `<th>${esc(x)}</th>`).join('')}</tr>`
+    + rows.reverse().join('');
+}
+
+function renderBanner() {
+  const res = result(), nm = names();
+  if (!res.done) { $('banner').classList.remove('show'); return; }
+  const w = res.winners.map(i => nm[i]).join(', ');
+  const l = res.losers.length ? `<br>🐐 ${res.losers.map(i => esc(nm[i])).join(', ')}` : '';
+  $('banner').innerHTML = `🏆 გაიმარჯვა: ${esc(w)}${l}
+    <button class="btn" id="nextBtn">▶ ახალი პარტია</button>`;
+  $('banner').classList.add('show');
+  $('nextBtn').onclick = () => {
+    res.winners.forEach(i => state.wins[state.mode][i]++);
+    state.rounds = []; draft = []; save(); render();
+  };
+}
+
+function render() { renderSettings(); renderEntry(); renderSheet(); renderBanner(); }
+
+document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => {
+  if (b.dataset.v === state.mode) return;
+  if (state.rounds.length && !confirm('მიმდინარე პარტიის ქულები წაიშლება. გავაგრძელო?')) return;
+  state.mode = b.dataset.v; state.rounds = []; draft = []; save(); render();
+});
+document.querySelectorAll('#goalSeg button').forEach(b => b.onclick = () => {
+  state.goal = b.dataset.v; save(); render();
+});
+$('target').onchange = e => {
+  let v = e.target.value;
+  if (v === 'custom') v = prompt('ლიმიტი (ქულა):', state.target);
+  v = parseInt(v);
+  if (v > 0) state.target = v;
+  save(); render();
+};
+$('addBtn').onclick = () => {
+  state.rounds.push(Array.from({ length: n() }, (_, i) => draft[i] || 0));
+  draft = []; save(); render();
+};
+$('undoBtn').onclick = () => {
+  if (state.rounds.length && confirm('წავშალო ბოლო რაუნდი?')) { state.rounds.pop(); save(); render(); }
+};
+$('resetBtn').onclick = () => {
+  if (confirm('ქულები და მოგებული პარტიების რაოდენობა განულდება (სახელები დარჩება). გავაგრძელო?')) {
+    state.rounds = []; state.wins = { solo: [0, 0, 0, 0], team: [0, 0] }; draft = []; save(); render();
+  }
+};
+
+render();
+</script>
+</body>
+</html>
