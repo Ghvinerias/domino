@@ -34,6 +34,11 @@
   .cols { display: grid; gap: 8px; }
   .cols.n4 { grid-template-columns: repeat(2, 1fr); }
   .cols.n2 { grid-template-columns: repeat(2, 1fr); }
+  .cols.n3 { grid-template-columns: repeat(3, 1fr); }
+  .cols.n3 .pl { padding: 8px 6px; }
+  .cols.n3 .quick button { font-size: .8rem; }
+  .cols.n3 .pl input.name { font-size: .82rem; padding: 3px 0; }
+  .seg button { white-space: nowrap; }
   @media (min-width: 640px) { .cols.n4 { grid-template-columns: repeat(4, 1fr); } }
   .pl { background: #0003; border-radius: 10px; padding: 10px; text-align: center; border: 2px solid transparent; position: relative; }
   .pl.lead { border-color: var(--gold); }
@@ -93,10 +98,12 @@
     <h2>პარამეტრები</h2>
     <div class="settings">
       <div>
-        <label>თამაში</label>
+        <label>მოთამაშეები</label>
         <div class="seg" id="modeSeg">
-          <button data-v="solo">ყველა ცალკე</button>
-          <button data-v="team">2 × 2</button>
+          <button data-v="2">2</button>
+          <button data-v="3">3</button>
+          <button data-v="4">4</button>
+          <button data-v="team">2×2</button>
         </div>
       </div>
       <div>
@@ -141,10 +148,13 @@ const QUICK = [5, 10, 15, 20, 25];
 const fresh = () => ({
   names: ['მოთამაშე 1', 'მოთამაშე 2', 'მოთამაშე 3', 'მოთამაშე 4'],
   teamNames: ['გუნდი A', 'გუნდი B'],
-  mode: 'solo', goal: 'win', target: 101,
-  rounds: [], wins: { solo: [0, 0, 0, 0], team: [0, 0] },
+  mode: '4', goal: 'win', target: 101,   // mode: '2' | '3' | '4' players, or 'team' (2×2)
+  rounds: [], wins: {},                  // wins per mode: { '3': [..], team: [..] }
 });
 let state = Object.assign(fresh(), load() || {});
+// Older saves only knew 4-player 'solo'
+if (state.mode === 'solo') state.mode = '4';
+if (state.wins.solo) { state.wins['4'] = state.wins.solo; delete state.wins.solo; }
 let draft = [];
 
 function load() { try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; } }
@@ -152,9 +162,9 @@ function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-const n = () => state.mode === 'team' ? 2 : 4;
-const names = () => state.mode === 'team'
-  ? state.teamNames.map((t, i) => `${t}`) : state.names;
+const n = () => state.mode === 'team' ? 2 : +state.mode;
+const names = () => state.mode === 'team' ? state.teamNames : state.names.slice(0, n());
+const wins = () => state.wins[state.mode] ||= Array(n()).fill(0);
 const teamSub = i => `${state.names[i]} + ${state.names[i + 2]}`;
 const totals = () => {
   const t = Array(n()).fill(0);
@@ -181,7 +191,7 @@ function renderSettings() {
   const opts = TARGETS.includes(state.target) ? TARGETS : [...TARGETS, state.target].sort((a, b) => a - b);
   $('target').innerHTML = opts.map(v => `<option ${v === state.target ? 'selected' : ''}>${v}</option>`).join('')
     + '<option value="custom">სხვა…</option>';
-  const w = state.wins[state.mode];
+  const w = wins();
   $('matchWins').innerHTML = names().map((nm, i) => `${esc(nm)}: <b>${w[i]}</b>`).join(' · ');
 }
 
@@ -253,7 +263,7 @@ function renderBanner() {
     <button class="btn" id="nextBtn">▶ ახალი პარტია</button>`;
   $('banner').classList.add('show');
   $('nextBtn').onclick = () => {
-    res.winners.forEach(i => state.wins[state.mode][i]++);
+    res.winners.forEach(i => wins()[i]++);
     state.rounds = []; draft = []; save(); render();
   };
 }
@@ -284,7 +294,7 @@ $('undoBtn').onclick = () => {
 };
 $('resetBtn').onclick = () => {
   if (confirm('ქულები და მოგებული პარტიების რაოდენობა განულდება (სახელები დარჩება). გავაგრძელო?')) {
-    state.rounds = []; state.wins = { solo: [0, 0, 0, 0], team: [0, 0] }; draft = []; save(); render();
+    state.rounds = []; state.wins = {}; draft = []; save(); render();
   }
 };
 
