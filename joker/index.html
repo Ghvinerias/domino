@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="ka">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>ჯოკერის რვეული</title>
+<style>
+  :root {
+    --bg:#14211b; --board:#1f3a2e; --board2:#26473a; --chalk:#f1efe6;
+    --muted:#a9c2b5; --gold:#f2c14e; --red:#e0614a; --green:#7fd17a; --tile:#f7f3e8;
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    margin:0; font-family:system-ui,"Noto Sans Georgian",sans-serif; font-size:15px;
+    background:radial-gradient(circle at top,#23392f,var(--bg)); color:var(--chalk); min-height:100vh;
+  }
+  .wrap { max-width:760px; margin:0 auto; padding:12px; }
+  h1 { text-align:center; margin:4px 0 12px; color:var(--gold); font-size:1.6rem; }
+  h2 { font-size:.85rem; color:var(--muted); margin:0 0 10px; text-transform:uppercase; letter-spacing:1px;
+       display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  h2 .tag { text-transform:none; letter-spacing:0; color:var(--chalk); font-weight:600; }
+  .card {
+    background:linear-gradient(180deg,var(--board2),var(--board)); border-radius:14px;
+    padding:12px; margin-bottom:12px; box-shadow:0 4px 14px #0008, inset 0 1px 0 #fff1;
+  }
+
+  /* setup */
+  .settings { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .settings .full { grid-column:1 / -1; }
+  .settings label { font-size:.8rem; color:var(--muted); display:block; margin-bottom:4px; }
+  .seg { display:flex; gap:4px; flex-wrap:wrap; }
+  .seg button, .fld {
+    flex:1; padding:10px 6px; border-radius:8px; border:1px solid #fff2; background:#0003;
+    color:var(--chalk); font-size:.95rem; cursor:pointer; white-space:nowrap;
+  }
+  .fld { width:100%; cursor:text; }
+  .fld:focus { outline:2px solid var(--gold); }
+  .seg button.on { background:var(--gold); color:var(--bg); font-weight:700; }
+  .names { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  .names input {
+    width:100%; background:#0003; border:none; border-bottom:2px dashed #fff4; border-radius:8px 8px 0 0;
+    color:var(--chalk); text-align:center; font-size:1.05rem; font-weight:600; padding:10px 4px;
+  }
+  .names input:focus { outline:none; border-bottom-color:var(--gold); }
+  .rules { color:var(--muted); font-size:.8rem; line-height:1.6; margin:0; padding-left:18px; }
+
+  .btn {
+    width:100%; padding:14px; font-size:1.1rem; font-weight:700; border:none; border-radius:10px;
+    background:var(--gold); color:var(--bg); cursor:pointer; box-shadow:0 3px 0 #0006; margin-top:12px;
+  }
+  .btn:active { transform:translateY(2px); box-shadow:0 1px 0 #0006; }
+  .btn:disabled { opacity:.4; }
+  .btn.sm { width:auto; padding:8px 12px; font-size:.88rem; background:#0004; color:var(--chalk); margin:0; }
+  .btn.danger { background:var(--red); color:#fff; }
+  .actions { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; margin-top:10px; }
+
+  /* players */
+  .cols { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .pl { background:#0003; border-radius:10px; padding:8px 4px 6px; text-align:center; border:2px solid transparent; position:relative; min-width:0; }
+  .pl.lead { border-color:var(--gold); }
+  .pl.lead::after { content:"👑"; position:absolute; top:-12px; right:-4px; }
+  .pl.turn { box-shadow:0 0 0 2px var(--green), 0 0 14px #7fd17a66; }
+  .pl .nm { font-weight:600; font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pl .dl { position:absolute; top:-9px; left:6px; font-size:.65rem; font-weight:700; background:var(--tile); color:var(--bg); border-radius:4px; padding:0 5px; box-shadow:0 2px 0 #0006; }
+  .total { font-size:1.75rem; font-weight:800; color:var(--gold); font-variant-numeric:tabular-nums; line-height:1.2; }
+  .bar { height:5px; background:#0005; border-radius:3px; overflow:hidden; margin:3px 2px; }
+  .bar > div { height:100%; background:var(--gold); transition:width .3s; }
+  .st { font-size:.75rem; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .st b { color:var(--chalk); }
+
+  /* entry pad */
+  .who { text-align:center; font-size:1.15rem; margin:2px 0 10px; }
+  .who b { color:var(--green); }
+  .who .sub { display:block; font-size:.8rem; color:var(--muted); margin-top:2px; }
+  .quick { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+  .quick button {
+    padding:12px 0; border-radius:8px; border:none; background:var(--tile); color:var(--bg);
+    font-weight:800; font-size:1.35rem; cursor:pointer; box-shadow:0 3px 0 #0006; font-variant-numeric:tabular-nums;
+  }
+  .quick button:active { transform:translateY(2px); box-shadow:none; }
+  .quick button:disabled { opacity:.18; box-shadow:none; cursor:default; }
+  .quick button.no { position:relative; }
+  .quick button.no::after { content:"✕"; position:absolute; top:1px; right:5px; font-size:.7rem; color:var(--red); }
+  .steps { display:flex; justify-content:center; gap:5px; margin-top:10px; }
+  .steps i { width:9px; height:9px; border-radius:50%; background:#0005; }
+  .steps i.done { background:var(--gold); }
+  .steps i.now { background:var(--green); }
+  .steps i.gap { width:10px; background:none; }
+
+  .banner { text-align:center; font-size:1.25rem; font-weight:700; padding:14px; border-radius:12px;
+    background:var(--gold); color:var(--bg); margin-bottom:12px; }
+  .banner .btn { background:var(--bg); color:var(--gold); }
+
+  /* sheet */
+  .tablewrap { max-height:440px; overflow-y:auto; border-radius:8px; }
+  table { width:100%; border-collapse:collapse; table-layout:fixed; font-variant-numeric:tabular-nums; }
+  th, td { padding:4px 2px; text-align:center; border-bottom:1px solid #fff1; }
+  thead th { position:sticky; top:0; background:var(--board2); color:var(--muted); font-size:.8rem; font-weight:600;
+             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; z-index:1; }
+  td.rn { width:40px; color:var(--muted); font-size:.72rem; line-height:1.15; }
+  td.rn b { display:block; color:var(--chalk); font-size:1rem; }
+  tr.cur td { background:#7fd17a1a; }
+  tr.ph td { color:var(--gold); font-weight:700; text-align:left; padding:10px 6px 4px; font-size:.85rem; letter-spacing:1px; border-bottom-color:#f2c14e44; }
+  tr.subt td { background:#0003; font-weight:800; color:var(--gold); }
+  tr.subt .prem { display:block; color:var(--green); font-size:.72rem; font-weight:700; }
+  tr.subt .cut { display:block; color:var(--red); font-size:.72rem; font-weight:700; }
+  .cell { display:flex; gap:2px; justify-content:center; }
+  select {
+    width:100%; max-width:40px; background:#0003; color:var(--chalk); border:1px solid #fff2; border-radius:6px;
+    padding:4px 0; font-size:.95rem; text-align:center; text-align-last:center; -webkit-appearance:none; appearance:none;
+  }
+  select option { background:var(--board); }
+  select.bid { color:var(--muted); }
+  select.dealer { border-style:dashed; border-color:var(--tile); }
+  select.act { outline:2px solid var(--green); outline-offset:-1px; }
+  select:disabled { opacity:.4; }
+  .sc { font-size:.8rem; font-weight:700; margin-top:1px; min-height:15px; }
+  .sc.pos { color:var(--green); } .sc.neg { color:var(--red); } .sc.mid { color:var(--muted); }
+  .warn { color:var(--red); font-size:.68rem; }
+  .hint { color:var(--muted); font-size:.75rem; line-height:1.5; margin:10px 0 0; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+const KEY = 'joker-score-v1';
+// დარიგებები: I ფულკა 1..8, II 4×9, III 8..1, IV 4×9
+const DEALS = [];
+[[1,2,3,4,5,6,7,8],[9,9,9,9],[8,7,6,5,4,3,2,1],[9,9,9,9]].forEach((p,pi)=>p.forEach(n=>DEALS.push({n,p:pi})));
+const ROMANS = ['I','II','III','IV'];
+const KH_OPTS = [['spec','სპეცი'],['25','200/500'],[200,'-200'],[500,'-500'],[900,'-900'],['c','სხვა']];
+
+let S = load();
+let history = [], lastCur = null;
+let setup = { kh:'spec', fd:0, cut:true };
+
+function load(){ try { return JSON.parse(localStorage.getItem(KEY)); } catch(e){ return null; } }
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+
+function newGame(names, khishti, cut, firstDealer){
+  S = { names, khishti, cut, firstDealer,
+        bids: DEALS.map(()=>[null,null,null,null]),
+        took: DEALS.map(()=>[null,null,null,null]) };
+  history = []; lastCur = null;
+  save(); render();
+}
+
+function dealScore(n, bid, took){
+  if (bid==null || took==null) return null;
+  if (bid===took) return bid===n ? n*100 : 50 + bid*50;
+  if (took===0) return -penalty(n);         // ხიშტი
+  return took*10;
+}
+
+// სპეცი: ჯარიმა = 100 × დარიგებული კარტი (1→100 … 9→900)
+// 200/500: 1–8 კარტზე 200, ცხრიანებში 500
+function penalty(n){ return S.khishti==='spec' ? n*100 : S.khishti==='25' ? (n===9?500:200) : S.khishti; }
+function khLabel(){ return S.khishti==='spec' ? 'სპეცი' : S.khishti==='25' ? '200/500' : '-'+S.khishti; }
+function dealerOf(i){ return (S.firstDealer + i) % 4; }
+// ცხადების რიგი: ამრიგებლის მომდევნოდან, ამრიგებელი ბოლოს
+function order(i){ const d=dealerOf(i); return [1,2,3,4].map(k=>(d+k)%4); }
+function nextStep(i){
+  for (const p of order(i)) if (S.bids[i][p]==null) return {kind:'bids',p};
+  for (const p of order(i)) if (S.took[i][p]==null) return {kind:'took',p};
+  return null;
+}
+
+function compute(){
+  const per = DEALS.map((d,i)=>[0,1,2,3].map(p=>dealScore(d.n,S.bids[i][p],S.took[i][p])));
+  const pulkas = [0,1,2,3].map(pi=>{
+    const idx = DEALS.map((d,i)=>d.p===pi?i:-1).filter(i=>i>=0);
+    const done = idx.every(i=>per[i].every(v=>v!=null));
+    const sum = [0,1,2,3].map(p=>idx.reduce((a,i)=>a+(per[i][p]??0),0));
+    const max = [0,1,2,3].map(p=>Math.max(...idx.map(i=>per[i][p]??-Infinity)));
+    const prem = [0,1,2,3].map(p=>done && idx.every(i=>S.bids[i][p]===S.took[i][p]));
+    const anyPrem = prem.some(x=>x);
+    const bonus = [0,1,2,3].map(p=>{
+      if (prem[p]) return max[p];
+      if (anyPrem && S.cut && max[p]>0) return -max[p];
+      return 0;
+    });
+    return { idx, done, sum, prem, bonus, total: sum.map((s,p)=>s+bonus[p]) };
+  });
+  const totals = [0,1,2,3].map(p=>pulkas.reduce((a,pk)=>a+pk.total[p],0));
+  return { per, pulkas, totals };
+}
+
+function currentDeal(){
+  for (let i=0;i<DEALS.length;i++) if (S.took[i].some(v=>v==null) || S.bids[i].some(v=>v==null)) return i;
+  return -1;
+}
+
+function opts(n, val, forbid){
+  let h = '<option value="">·</option>';
+  for (let k=0;k<=n;k++) h += `<option value="${k}" ${val===k?'selected':''} ${forbid===k?'disabled':''}>${k}${forbid===k?'✕':''}</option>`;
+  return h;
+}
+
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmt(v){ return v>0?'+'+v:''+v; }
+
+/* ---------- setup ---------- */
+function renderSetup(){
+  const prev = S?.names || ['','','',''];
+  const seg = (key, items) => items.map(([v,l])=>`<button class="${setup[key]===v?'on':''}" onclick="setSetup('${key}',${typeof v==='string'?`'${v}'`:v})">${l}</button>`).join('');
+  document.getElementById('app').innerHTML = `
+  <h1>🃏 ჯოკერის რვეული</h1>
+  <div class="card">
+    <h2>მოთამაშეები <span class="tag">მაგიდის რიგით</span></h2>
+    <div class="names">${[0,1,2,3].map(i=>`<input id="n${i}" value="${esc(prev[i])}" placeholder="მოთამაშე ${i+1}" oninput="renderDealerSeg()">`).join('')}</div>
+  </div>
+  <div class="card">
+    <h2>პარამეტრები</h2>
+    <div class="settings">
+      <div class="full"><label>პირველი ამრიგებელი</label><div class="seg" id="fdSeg"></div></div>
+      <div class="full"><label>ხიშტი</label><div class="seg">${seg('kh',KH_OPTS)}</div>
+        <input id="khc" class="fld" type="number" inputmode="numeric" min="0" placeholder="ჯარიმა, მაგ. 300" style="margin-top:6px;display:${setup.kh==='c'?'block':'none'}"></div>
+      <div class="full"><label>პრემიისას სხვებს ფულკის მაქს. ქულა</label>
+        <div class="seg">${seg('cut',[[true,'✂ ეჭრებათ'],[false,'არ ეჭრებათ']])}</div></div>
+    </div>
+    <button class="btn" onclick="startGame()">🃏 დაწყება</button>
+  </div>
+  <div class="card">
+    <h2>წესები</h2>
+    <ul class="rules">
+      <li>შეასრულა: 50 + 50×ნათქვამი (პასი → 50)</li>
+      <li>ყველა თქვა და წაიღო: 100×კარტი</li>
+      <li>ვერ შეასრულა: 10×წაღებული</li>
+      <li>ხიშტი (თქვა, მაგრამ 0 წაიღო): სპეცი — 100×კარტი · 200/500 — 1–8-ზე 200, ცხრიანებში 500</li>
+      <li>პრემია (ფულკაში ყველა შეასრულა): ფულკის მაქს. ქულა ორმაგდება</li>
+    </ul>
+  </div>`;
+  renderDealerSeg();
+}
+function renderDealerSeg(){
+  const el = document.getElementById('fdSeg'); if (!el) return;
+  el.innerHTML = [0,1,2,3].map(i=>{
+    const nm = document.getElementById('n'+i)?.value.trim() || ('მოთ. '+(i+1));
+    return `<button class="${setup.fd===i?'on':''}" onclick="setSetup('fd',${i})">${esc(nm)}</button>`;
+  }).join('');
+}
+function setSetup(k,v){
+  const names = [0,1,2,3].map(i=>document.getElementById('n'+i).value);
+  const khc = document.getElementById('khc')?.value;
+  setup[k]=v;
+  S = { names };
+  renderSetup();
+  if (khc) document.getElementById('khc').value = khc;
+  if (k==='kh' && v==='c') document.getElementById('khc').focus();
+}
+function startGame(){
+  const names = [0,1,2,3].map(i=>document.getElementById('n'+i).value.trim() || ('მოთ. '+(i+1)));
+  let kh = setup.kh;
+  if (kh==='c'){
+    kh = Math.abs(parseInt(document.getElementById('khc').value));
+    if (!Number.isFinite(kh)) { alert('ჩაწერე ხიშტის ჯარიმა'); return; }
+  }
+  newGame(names, kh, setup.cut, setup.fd);
+}
+
+/* ---------- game ---------- */
+function render(){
+  if (!S || !S.bids) return renderSetup();
+  const C = compute(), cur = currentDeal();
+  const best = Math.max(...C.totals), lo = Math.min(0, ...C.totals);
+  const P = padInfo(cur);
+
+  // მოთამაშეების ბარათები
+  const players = [0,1,2,3].map(p=>{
+    const pct = best>lo ? Math.round((C.totals[p]-lo)/(best-lo)*100) : 0;
+    let st = '';
+    if (cur>=0){
+      const b = S.bids[cur][p], t = S.took[cur][p];
+      st = `<b>${b??'–'}</b> / <b>${t??'–'}</b>`;
+    }
+    const lead = C.totals[p]===best && best!==0;
+    return `<div class="pl ${lead?'lead':''} ${P&&P.p===p?'turn':''}">
+      ${cur>=0&&dealerOf(cur)===p?'<span class="dl">არიგებს</span>':''}<div class="nm">${esc(S.names[p])}</div>
+      <div class="total">${C.totals[p]}</div>
+      <div class="bar"><div style="width:${pct}%"></div></div>
+      <div class="st">${st}</div></div>`;
+  }).join('');
+
+  // რვეული
+  let rows = '';
+  DEALS.forEach((d,i)=>{
+    if (i===0 || DEALS[i-1].p!==d.p) rows += `<tr class="ph"><td colspan="5">${ROMANS[d.p]} ფულკა</td></tr>`;
+    const dl = dealerOf(i);
+    const bids = S.bids[i], took = S.took[i];
+    // ამრიგებელს (ბოლოს ამბობს) არ შეუძლია თქვას ისე, რომ ჯამი = კარტების რაოდენობა
+    const othersBid = [0,1,2,3].filter(p=>p!==dl).map(p=>bids[p]);
+    const forbid = othersBid.every(v=>v!=null) ? d.n - othersBid.reduce((a,b)=>a+b,0) : null;
+    const bidsDone = bids.every(v=>v!=null), tookDone = took.every(v=>v!=null);
+    const tookSum = took.reduce((a,b)=>a+(b??0),0);
+    const warn = tookDone && tookSum!==d.n ? `<div class="warn">${tookSum}≠${d.n}</div>` : '';
+    const st = i===cur ? nextStep(i) : null;
+    rows += `<tr class="${i===cur?'cur':''}" ${i===cur?'id="currow"':''}><td class="rn"><b>${d.n}</b>${esc(S.names[dl]).slice(0,4)}${warn}</td>`;
+    for (let p=0;p<4;p++){
+      const sc = C.per[i][p];
+      const cls = sc==null?'':(sc<0?'neg':(bids[p]===took[p]?'pos':'mid'));
+      rows += `<td><div class="cell">
+        <select class="bid ${p===dl?'dealer':''} ${st&&st.kind==='bids'&&st.p===p?'act':''}" onchange="setv('bids',${i},${p},this.value)">${opts(d.n,bids[p],p===dl?forbid:null)}</select>
+        <select class="${st&&st.kind==='took'&&st.p===p?'act':''}" onchange="setv('took',${i},${p},this.value)" ${bidsDone?'':'disabled'}>${opts(d.n,took[p])}</select>
+      </div><div class="sc ${cls}">${sc==null?'':sc}</div></td>`;
+    }
+    rows += '</tr>';
+    if (i===DEALS.length-1 || DEALS[i+1].p!==d.p){
+      const pk = C.pulkas[d.p];
+      rows += `<tr class="subt"><td class="rn">ჯამი</td>${[0,1,2,3].map(p=>`<td>${pk.total[p]}
+        ${pk.prem[p]?`<span class="prem">★ ${fmt(pk.bonus[p])}</span>`:''}
+        ${!pk.prem[p]&&pk.bonus[p]<0?`<span class="cut">✂ ${pk.bonus[p]}</span>`:''}</td>`).join('')}</tr>`;
+    }
+  });
+
+  const winner = cur<0 ? C.totals.indexOf(best) : -1;
+  document.getElementById('app').innerHTML = `
+  <h1>🃏 ჯოკერის რვეული</h1>
+  ${winner>=0?`<div class="banner">🏆 ${esc(S.names[winner])} იგებს — ${best}!<button class="btn" onclick="reset()">✚ ახალი თამაში</button></div>`:''}
+  <div class="card">
+    <h2>ანგარიში <span class="tag">ხიშტი: ${khLabel()}</span></h2>
+    <div class="cols">${players}</div>${cur>=0?'<div class="hint" style="text-align:center;margin-top:6px">ნათქვამი / წაღებული ამ დარიგებაში</div>':''}
+  </div>
+  ${P?`<div class="card">
+    <h2>ჩაწერა <span class="tag">${ROMANS[DEALS[cur].p]} ფულკა · ${cur+1}/24 · ${DEALS[cur].n} კარტი</span></h2>
+    ${padHtml(P)}
+  </div>`:''}
+  <div class="card">
+    <h2>რვეული</h2>
+    <div class="tablewrap" id="tw"><table>
+      <thead><tr><th style="width:40px">#</th>${S.names.map(n=>`<th>${esc(n)}</th>`).join('')}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <p class="hint">თითო უჯრაში: ნათქვამი · წაღებული — შესასწორებლად აქაც შეგიძლიათ შეცვალოთ. ამრიგებლის ნათქვამს წყვეტილი ჩარჩო აქვს. ლეპტოპზე ციფრები კლავიატურიდანაც მუშაობს.</p>
+    <div class="actions">
+      <button class="btn sm" onclick="undo()" ${history.length?'':'disabled'}>↶ დაბრუნება</button>
+      <button class="btn sm" onclick="setKhishti()">ხიშტი: ${khLabel()}</button>
+      <button class="btn sm danger" onclick="reset()">✚ ახალი თამაში</button>
+    </div>
+  </div>`;
+  if (cur>=0 && cur!==lastCur){
+    const tw = document.getElementById('tw'), row = document.getElementById('currow');
+    if (tw && row) tw.scrollTop = row.offsetTop - tw.clientHeight/2 + row.offsetHeight/2;
+  }
+  lastCur = cur;
+}
+
+function padInfo(i){
+  if (i<0) return null;
+  const st = nextStep(i); if (!st) return null;
+  const n = DEALS[i].n, dl = dealerOf(i);
+  const allowed = []; let forbid = null;
+  for (let k=0;k<=n;k++){
+    if (st.kind==='bids' && st.p===dl){
+      const sum = [0,1,2,3].filter(p=>p!==dl).reduce((a,p)=>a+S.bids[i][p],0);
+      if (k===n-sum) { forbid = k; continue; }   // ამრიგებელს ეს ეკრძალება
+    }
+    if (st.kind==='took'){
+      const sum = S.took[i].reduce((a,b)=>a+(b??0),0);
+      if (sum+k>n) continue;
+    }
+    allowed.push(k);
+  }
+  return {...st, i, n, allowed, forbid};
+}
+function padHtml(P){
+  const isDealer = P.p===dealerOf(P.i);
+  const what = P.kind==='bids' ? 'ცხადებს' : 'რამდენი წაიღო?';
+  let sub;
+  if (P.kind==='bids'){
+    const said = S.bids[P.i].reduce((a,b)=>a+(b??0),0);
+    sub = `ნათქვამია ${said} / ${P.n}${isDealer?' · ამრიგებელი':''}`;
+  } else {
+    const t = S.took[P.i].reduce((a,b)=>a+(b??0),0);
+    sub = `თქვა ${S.bids[P.i][P.p]} · დარჩენილი ხელები ${P.n-t}`;
+  }
+  const ord = order(P.i);
+  const dots = ['bids','took'].map(k=>ord.map(p=>{
+    const done = S[k][P.i][p]!=null, now = k===P.kind && p===P.p;
+    return `<i class="${now?'now':done?'done':''}"></i>`;
+  }).join('')).join('<i class="gap"></i>');
+  return `<div class="who"><b>${esc(S.names[P.p])}</b> — ${what}<span class="sub">${sub}</span></div>
+    <div class="quick" style="grid-template-columns:repeat(${P.n+1<=5?P.n+1:Math.ceil((P.n+1)/2)},1fr)">${Array.from({length:P.n+1},(_,k)=>`<button class="${P.forbid===k?'no':''}" ${P.allowed.includes(k)?'':'disabled'} onclick="padPick(${k})">${k}</button>`).join('')}</div>
+    <div class="steps">${dots}</div>`;
+}
+function padPick(k){
+  const P = padInfo(currentDeal());
+  if (!P || !P.allowed.includes(k)) return;
+  setv(P.kind, P.i, P.p, String(k));
+}
+document.addEventListener('keydown', e=>{
+  if (!S || !S.bids || /SELECT|INPUT/.test(e.target.tagName)) return;
+  if (/^[0-9]$/.test(e.key)) { padPick(+e.key); e.preventDefault(); }
+  else if ((e.ctrlKey||e.metaKey) && e.key==='z') { undo(); e.preventDefault(); }
+});
+
+function setKhishti(){
+  const v = prompt('ხიშტის ჯარიმა — ჩაწერე რიცხვი, „ს“ სპეცისთვის (100×კარტი) ან „25“ 200/500-ისთვის.\nმთელ თამაშზე გადაითვლება:', S.khishti==='spec'?'ს':S.khishti);
+  if (v==null) return;
+  if (v.trim()==='25') { history.push(JSON.stringify(S)); S.khishti='25'; save(); render(); return; }
+  if (/^\s*(ს|s)/i.test(v)) { history.push(JSON.stringify(S)); S.khishti='spec'; save(); render(); return; }
+  const n = Math.abs(parseInt(v));
+  if (!Number.isFinite(n)) return alert('არასწორი რიცხვი');
+  history.push(JSON.stringify(S)); S.khishti = n; save(); render();
+}
+function setv(kind,i,p,v){
+  history.push(JSON.stringify(S));
+  S[kind][i][p] = v===''?null:+v;
+  // ბოლო მოთამაშის წაღებული = დარჩენილი ხელები
+  if (v!=='' && S.bids[i].every(x=>x!=null)){
+    const t = S.took[i], empty = [0,1,2,3].filter(q=>t[q]==null);
+    const rest = DEALS[i].n - t.reduce((a,b)=>a+(b??0),0);
+    // ყველა ხელი უკვე წაღებულია → დანარჩენებს 0
+    if (rest===0) empty.forEach(q=>t[q]=0);
+    else if (empty.length===1 && rest>0) t[empty[0]] = rest;
+  }
+  save(); render();
+}
+function undo(){ if (history.length){ S = JSON.parse(history.pop()); save(); render(); } }
+function reset(){
+  if (currentDeal()>=0 && !confirm('დავიწყოთ ახალი თამაში? მიმდინარე ქულები წაიშლება.')) return;
+  if (['spec','25',200,500,900].includes(S.khishti)) setup.kh = S.khishti;
+  setup.cut = S.cut; setup.fd = S.firstDealer;
+  S = { names:S.names }; history = []; save(); renderSetup();
+}
+
+render();
+</script>
+</body>
+</html>
