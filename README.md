@@ -1,9 +1,6 @@
-# დომინოს ჩოთქი
+# games.slick.ge
 
-A simple one-page domino scorekeeper for 4 players (solo or 2×2 teams), with a configurable target score and win/lose ("goat") mode. Scores are saved in the browser's localStorage.
+Simple one-page score keepers for card and board games. Scores are saved in the browser's localStorage.
 
-Live: https://domino.slick.ge
-
-## Joker (ჯოკერი) scorekeeper
-
-A second tool lives in [`joker/`](joker/index.html): https://domino.slick.ge/joker/
+- [`domino/`](domino/index.html) — dominoes for 2, 3, 4 players or 2×2 teams: https://games.slick.ge/domino/
+- [`joker/`](joker/index.html) — Joker (ჯოკერი): https://games.slick.ge/joker/
